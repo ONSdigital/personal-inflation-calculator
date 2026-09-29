@@ -10,20 +10,10 @@ This frontend interactive estimates how price changes affect a household's spend
 
 ## How the estimate is calculated
 
-The calculator converts each entered amount to a monthly spend according to its selected payment frequency. For a category $c$ in month $t$, let $S_c$ be the current monthly spend and $r_{c,t}$ be that category's **annual** inflation rate (a percentage, not its price-index level). It estimates what the same basket would have cost a year earlier and the resulting change:
+The calculator first converts spending entered weekly, monthly or yearly into monthly amounts. It then uses the annual price change for each spending category to estimate what the same purchases would have cost a year earlier. Adding those amounts across categories gives an estimated previous monthly cost. The difference between that and today's monthly cost gives the estimated increase or decrease in spending; comparing the two totals gives the personal inflation rate. Categories where a household spends more generally have a greater effect on its result.
 
-$$
-P_{c,t} = \frac{S_c}{1 + r_{c,t}/100}, \qquad \Delta_{c,t} = S_c - P_{c,t}.
-$$
+The quick calculator asks for spending in a smaller set of categories. For the others, apart from "other", it uses indicative average spending for UK households, or for households with a similar income if income is provided. Housing comparisons that do not apply to the selected living situation are set to zero. The detailed calculator lets users enter their own spending across the categories. Income affects estimated spending for categories not entered in quick mode, not the price changes applied to them.
 
-The personal inflation rate for that month is the total change divided by the estimated cost a year earlier:
+The headline result uses the latest available month. The historical chart applies the same entered spending to price changes from earlier months; it does not reconstruct what the household actually bought or paid then. The separate headline CPIH rate provides a national comparison and need not match a household's personal rate.
 
-$$
-\mathrm{PIR}_t = 100 \times \frac{\sum_c \Delta_{c,t}}{\sum_c P_{c,t}}.
-$$
-
-The latest month is the headline result. The same entered spending amounts are applied to each of the preceding 59 months to draw the historical series; the calculator does not ask for historical household spending. Category contributions in the results use each category's share of the total change, multiplied by the personal inflation rate.
-
-In detailed mode, the calculation uses the amounts entered for each category. In quick mode, it uses entered amounts for the visible quick categories and fills the remaining categories (except "other") with comparison spending. Comparison spending is the UK average unless the user supplies household income, in which case an income group is selected; rent and owner-occupier housing comparisons are set to zero where they do not apply to the chosen housing situation. Income changes the comparison spending used for quick-mode estimates, **not** the category inflation rates.
-
-This is an indicative estimate for a fixed basket based on current spending. It is not a record of the household's actual spending over time, and the headline CPIH series is a separate national benchmark.
+The result is an indication, not a forecast. It cannot account for changes in spending habits or differences in prices within a category, such as choosing cheaper or more expensive groceries. Spending on large one-off purchases or fixed repayments may not change in the way the category's price index suggests. The tool uses mortgage spending as a proxy for owner-occupier housing costs; this is not a measure of changes in house prices. For more background, see the [ONS explanation of the calculator](https://www.ons.gov.uk/economy/inflationandpriceindices/articles/howisinflationaffectingyourhouseholdcosts/2022-03-23).
