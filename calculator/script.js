@@ -115,7 +115,7 @@ function drawGraphic() {
         addAverages(decile);
         addTooltips(decile);
         updateRunningTotal(decile);
-        calculate(final_data, cpih_selected, decile, option)
+        calculate(inflation, cpih_selected, decile, option)
         d3.select("#currentinflation").text(d3.format(".1f")(overall_inflation[0].pir)+"%*")
         // show(d3.select("#monthlyexpenditure"))
         // show(d3.select("#monthlyexpenditure"))
@@ -166,7 +166,7 @@ function drawGraphic() {
           showResults();
           pymChild.sendHeight()
           document.getElementById("graphic-container").scrollIntoView(true)
-          calculate(final_data, cpih_selected, decile, option)
+          calculate(inflation, cpih_selected, decile, option)
         } else {
           show(d3.select("#inputs" + counter))
           show(d3.select("#calculateError"))
@@ -180,7 +180,7 @@ function drawGraphic() {
         hide(d3.select("#averagespend-disclaimer"))
         hide(d3.select("#inputs-quick"))
         show(d3.select("#backtoDetailed"))
-        calculate(final_data, cpih_selected, decile, option)
+        calculate(inflation, cpih_selected, decile, option)
         pymChild.sendHeight()
         document.getElementById("graphic-container").scrollIntoView(true)
 
@@ -628,7 +628,7 @@ function drawGraphic() {
       updateSpendComparison(itemid[0],decile)
       if (option == "quick"){
         prevInflation = overall_inflation[0].pir
-        calculate(final_data, cpih_selected, decile, option)
+        calculate(inflation, cpih_selected, decile, option)
         currInflation = overall_inflation[0].pir
         // d3.select("#currentinflation").transition().duration(1000).tween("text",d3.format(".1f")(overall_inflation[0].pir)+"%")
         d3.select("#currentinflation").transition().duration(1000).tween("text", function(d) {
@@ -740,17 +740,32 @@ function drawGraphic() {
   }
 
   function calculate(data, cpih, decile, option) {
+    var categoryIds = {
+      foodhotdrinks: "1.1", spiritswinebeer: "1.2", tobacco: "1.3", personalcare: "1.4", nongrocery: "1.5",
+      ooh: "2.1", maintenance: "2.1", rent: "2.2", counciltax: "2.3", electricitygasfuels: "2.4", water: "2.5",
+      mobilephone: "3.1", internet: "3.2", vehicles: "4.1", petroldiesel: "4.2", othermotoring: "4.3",
+      trainfares: "4.4", busfares: "4.5", electrical: "5.1", tv: "5.2", games: "5.3", entertainment: "5.4",
+      pets: "5.5", gardening: "5.6", eatingout: "5.7", holidays: "5.8", otherleisure: "5.9",
+      health: "A", education: "B", residentialcare: "C", childcare: "C", clothes: "D", furniture: "E",
+      insurance: "F", other: "G"
+    }
+    var sourceCategories = {}
+    data.categories.forEach(function(category) {
+      sourceCategories[category.id] = category.data.slice(-dvc.time_series_totalmnths).reverse()
+    })
+    var parseInflationDate = d3.timeParse("%Y-%m-%d")
     var total = 0
     var total_change = 0
     pir = 0
     category_data = {}
     compare_avg_user = {}
     //loop through each category
-    Object.keys(data).forEach(function(category, i) {
+    Object.keys(categoryIds).forEach(function(category) {
+      var months = sourceCategories[categoryIds[category]]
       category_data[category] = {}
       quickcategories = dvc.quickcategories
       //loop through each month
-      for (i = 0; i < data[category].length; i++) {
+      for (var i = 0; i < months.length; i++) {
         if (option == "detailed" | option == "superfast"){
           var input = (d3.select("#" + category).property("value") * d3.select("#" + category + "-time-period").property("value")) / 12
         }
@@ -767,11 +782,11 @@ function drawGraphic() {
             var input = 0
           }
         }
-        var inflation_rate = data[category][i].index
+        var inflation_rate = months[i].annualRate
         var previous_spend = (input / (1 + (inflation_rate / 100)))
         var change = input - previous_spend
         category_data[category][i] = {
-          date: data[category][i].key,
+          date: parseInflationDate(months[i].date),
           input: input,
           inflation_rate: inflation_rate,
           change: change,
@@ -793,7 +808,7 @@ function drawGraphic() {
       category = d.key
       selected_infdata = inflation_data.filter(function(infdata){return infdata.cat_id == d.key})
       d.category = selected_infdata[0].category
-      d.inflation_rate = data[category][0].index
+      d.inflation_rate = sourceCategories[categoryIds[category]][0].annualRate
       d.change = d.value - (d.value / (1 + (d.inflation_rate / 100)))
       d.previous_spend = d.value - d.change
       // d.weighted_index = d.proportion * (d.inflation_rate / 100)
@@ -814,7 +829,7 @@ function drawGraphic() {
       return b.changediff - a.changediff;
     })
     overall_inflation = []
-    for (i = 0; i < data["foodhotdrinks"].length; i++) {
+    for (i = 0; i < sourceCategories[categoryIds.foodhotdrinks].length; i++) {
       var total = 0
       var total_change = 0
       var pir = 0
@@ -842,6 +857,11 @@ function drawGraphic() {
         }
       })
     }
+
+    console.log("Inflation calculation using imported data", {
+      data: data,
+      latestInflation: overall_inflation[0]
+    })
 
     if (counter > 1 | option == "superfast"){
 
@@ -1943,23 +1963,23 @@ function drawGraphic() {
 
   function loadData() {
 
-
-    //load all json files from ONS time series
     q = d3.queue()
-
-    inflation_data.forEach(function(item) {
-      // calls = calls + 2
-      q.defer(d3.json, "https://www.ons.gov.uk/economy/inflationandpriceindices/timeseries/" + item.inflation_cdid + "/data")
-      // q.defer(d3.json, "https://www.ons.gov.uk/economy/inflationandpriceindices/timeseries/" + item.weight_cdid + "/data")
-      // console.log(item,calls)
-    })
-
-    q.defer(d3.csv, "https://raw.githubusercontent.com/ONSdigital/automatic-cpi-weights/main/data.csv")
+    q.defer(d3.json, "https://raw.githubusercontent.com/ONSdigital/personal-inflation-calculator-data/main/data/data.json")
     q.defer(d3.json, "https://www.ons.gov.uk/economy/inflationandpriceindices/timeseries/l55o/mm23/data")
-
-
-    //once all files are loaded, execute ready function
-    q.awaitAll(ready);
+    q.awaitAll(function(error, results) {
+      if (error) {
+        console.error("Unable to load inflation data", error)
+        return
+      }
+      inflation = results[0]
+      var parseCpihDate = d3.timeParse(dvc.cpih_time_format)
+      cpih_selected = results[1].months.slice(-dvc.time_series_totalmnths).reverse().map(function(month) {
+        return Object.assign({}, month, {
+          date: parseCpihDate(month.date),
+          value: +month.value
+        })
+      })
+    });
   } //end load data
 
   function wrap(text, width) {
