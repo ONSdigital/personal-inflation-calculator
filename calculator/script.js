@@ -718,6 +718,11 @@ function drawGraphic() {
       var months = sourceCategories[categoryIds[category]]
       category_data[category] = {}
       quickcategories = dvc.quickcategories
+      if (option == "quick" && !quickcategories.includes(category) && category != "other") {
+        var averageSpend = averages.filter(function(d) {
+          return d.key == category
+        })[0].value
+      }
       //loop through each month
       for (var i = 0; i < months.length; i++) {
         if (option == "detailed" | option == "superfast"){
@@ -728,9 +733,7 @@ function drawGraphic() {
             var input = (d3.select("#" + category + "-quick").property("value") * d3.select("#" + category + "-time-period-quick").property("value")) / 12
           }
           else if(quickcategories.includes(category) == false & category != "other"){
-              var input = averages.filter(function(d) {
-                return d.key == category
-              })[0].value
+              var input = averageSpend
             }
           else{
             var input = 0
