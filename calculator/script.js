@@ -816,19 +816,19 @@ function drawGraphic() {
       drawLineChart(overall_inflation, cpih)
 
       categoryByWeight = []
+      runningAvgTotal = 0
+      averages.forEach(function(category){
+        runningAvgTotal = runningAvgTotal + category.value
+      })
+      averages.forEach(function(category){
+        category.proportion = +d3.format(".3f")(category.value/runningAvgTotal)
+        category.weighted_index = category.proportion * category.inflation_rate
+      })
 
       Object.keys(category_data).forEach(function(category) {
         // if ((category == "rent" | category == "ooh") & category_data[category][0].input == 0){
         //   averages.filter(function(d){return d.key == category})[0].value = 0
         // }
-        runningAvgTotal = 0
-        averages.forEach(function(category){
-          runningAvgTotal = runningAvgTotal + category.value
-        })
-        averages.forEach(function(category){
-          category.proportion = +d3.format(".3f")(category.value/runningAvgTotal)
-          category.weighted_index = category.proportion * category.inflation_rate
-        })
         var foo = category_data[category][0]
         foo.category = inflation_data.filter(function(d) {
           return d.cat_id == category
