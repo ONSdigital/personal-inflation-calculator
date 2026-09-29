@@ -1,6 +1,7 @@
 var pymChild = null;
 var counter = 0;
 var decile;
+// inflation_data.js defines UI categories; repeated entries share one spending input.
 var allCategories = inflation_data.map(function(d) {
   return d.cat_id;
 }).filter(function(d, i, a) {
@@ -10,6 +11,8 @@ prevSpend = 0;
 
 function drawGraphic() {
 
+  // Map spending-input IDs to pre-aggregated category IDs in the downloaded JSON.
+  // Several UI inputs intentionally share a source series (for example, OOH and maintenance).
   var categoryIds = {
     foodhotdrinks: "1.1", spiritswinebeer: "1.2", tobacco: "1.3", personalcare: "1.4", nongrocery: "1.5",
     ooh: "2.1", maintenance: "2.1", rent: "2.2", counciltax: "2.3", electricitygasfuels: "2.4", water: "2.5",
@@ -19,6 +22,7 @@ function drawGraphic() {
     health: "A", education: "B", residentialcare: "C", childcare: "C", clothes: "D", furniture: "E",
     insurance: "F", other: "G"
   }
+  // Rebuilt after each fetch and reused across recalculations, but not across page loads.
   var sourceCategories = {}
   loadData();
   getSize();
@@ -30,6 +34,7 @@ function drawGraphic() {
   resetHousingCosts();
   addScreenReaderLabels();
 
+  // Select the chart margins used by the current container width.
   function getSize() {
     someContainer = d3.select("#graphic-container");
     if (parseInt(someContainer.style("width")) < dvc.mobileBreakpoint) {
@@ -45,6 +50,8 @@ function drawGraphic() {
   } //end initialise
 
 
+  // Wire the intro, quick/detailed steps, mode switches, and result navigation.
+  // counter is the current step; results are shown after the final input step.
   function enablePageButtons() {
 
     d3.select("#startButton").on("click",function(){
@@ -378,6 +385,7 @@ function drawGraphic() {
 
   }
 
+  // Show or hide the income input; the selected value is applied on the next intro step.
   function enableIncomePage() {
     tippy('#netincome-question', {
       content: "This is the income of all the adults in your household (for example, earnings, benefits, pension), minus any taxes paid on that income (for example, income tax, national insurance).",
@@ -396,6 +404,7 @@ function drawGraphic() {
     })
   }
 
+  // Switching tenure clears rent and owner-occupier inputs from both calculator modes.
   function resetHousingCosts(){
     d3.select("#mortgage-radio").on("click",function(){
       d3.select("#ooh-quick").property("value",0)
@@ -423,6 +432,7 @@ function drawGraphic() {
     })
   }
 
+  // Convert monthly household income into a 1-based decile; 0 means UK average elsewhere.
   function getDecile(income) {
     var decile = 0;
     // keep adding 1 to decile if income is still above current decile band. Also stop when we've exhausted deciles.
@@ -434,6 +444,8 @@ function drawGraphic() {
     return decile;
   }
 
+  // Build the comparison spends for the chosen decile and housing tenure.
+  // The quick calculator uses these values for categories without a visible quick input.
   function addAverages(decile) {
     averages = []
     runningAvgTotal = 0
@@ -505,6 +517,7 @@ function drawGraphic() {
     })
   }
 
+  // Populate spending-category help text, including tenure-specific caveats.
   function addTooltips(decile) {
     inflation_data.forEach(function(category) {
       d3.selectAll("#" + category.cat_id + "-question .question").text(category.category);
@@ -530,6 +543,7 @@ function drawGraphic() {
 
   }
 
+  // Detailed results require at least one nonzero spending input.
   function checkIfInputsAreBlank(){
     inputtotal = 0;
     inflation_data.forEach(function(category) {
@@ -539,12 +553,14 @@ function drawGraphic() {
     if(inputtotal==0){return true}else{return false};
   }
 
+  // Fill labels for category inputs from the shared UI category definitions.
   function addScreenReaderLabels() {
     inflation_data.forEach(function(category) {
       d3.selectAll("#" + category.cat_id + "-label").text(category.category)
     })
   }
 
+  // Swap the questionnaire for the results view without clearing entered spends.
   function showResults() {
     hide(d3.selectAll(".frontpage"));
     hide(d3.selectAll("#inputs0"));
@@ -554,12 +570,14 @@ function drawGraphic() {
     pymChild.sendHeight();
   }
 
+  // Return to the questionnaire with the current spending inputs preserved.
   function hideResults() {
     show(d3.selectAll(".frontpage"));
     show(d3.select(".heading"))
     hide(d3.select("#results"));
   }
 
+  // Compare entered spending with the UK average or similar-income households.
   function updateSpendComparison(id,decile){
     var category_spend = Object.values(deciles_data.filter(function(d){
       return d.cat_id == id
@@ -609,6 +627,8 @@ function drawGraphic() {
     }
   }
 
+  // Refresh spend comparisons on input changes. Quick mode also recalculates
+  // inflation immediately; detailed mode waits until the results step.
   function updateRunningTotal(decile) {
     d3.selectAll('input.spending').on('change', function() {
       calculateSpending();
@@ -687,6 +707,7 @@ function drawGraphic() {
     }
   }
 
+  // Animate the total of the detailed monthly spending inputs.
   function calculateSpending() {
     totalspending = allCategories.reduce(function(prev, curr) {
       return prev + spendXfreq(curr)
@@ -704,10 +725,13 @@ function drawGraphic() {
     })
   }
 
+  // Convert the selected payment frequency to a monthly amount.
   function spendXfreq(item) {
     return d3.select("input#" + item).property('value') * d3.select("select#" + item + "-time-period").property('value') / 12
   }
 
+  // Combine current monthly spends with each category's annual inflation rate.
+  // sourceCategories is prepared at load time; spending and decile averages remain live.
   function calculate(data, cpih, decile, option) {
     var total = 0
     var total_change = 0
@@ -739,6 +763,7 @@ function drawGraphic() {
             var input = 0
           }
         }
+        // Reverse the annual increase to estimate last year's spend at today's basket size.
         var inflation_rate = months[i].annualRate
         var previous_spend = (input / (1 + (inflation_rate / 100)))
         var change = input - previous_spend
@@ -763,6 +788,8 @@ function drawGraphic() {
       d.previous_spend = d.value - d.change
     })
 
+    // Sum monthly changes, then compare them with last year's total to obtain PIR.
+    // Index 0 is the latest month; the charts expect 60 months in this order.
     overall_inflation = []
     for (i = 0; i < sourceCategories[categoryIds.foodhotdrinks].length; i++) {
       var total = 0
@@ -778,6 +805,7 @@ function drawGraphic() {
       pir = (total_change/(total-total_change))*100
       Object.keys(category_data).forEach(function(category) {
         // console.log(category_data[category][i])
+        // Each category's chart contribution is its share of the total spend change.
         category_data[category][i].weight = category_data[category][i].change/total_change
         category_data[category][i].weighted_index = pir*category_data[category][i].weight
         // category_data[category][i].weight = category_data[category][i].input / total
@@ -798,6 +826,7 @@ function drawGraphic() {
       latestInflation: overall_inflation[0]
     })
 
+    // Only populate the results and charts once the user reaches the results state.
     if (counter > 1 | option == "superfast"){
 
       d3.select("#personalInflation").text(d3.format(".1f")(overall_inflation[0].pir) + "%")
@@ -814,6 +843,7 @@ function drawGraphic() {
 
       drawLineChart(overall_inflation, cpih)
 
+      // Average-spend proportions are recomputed once for each results calculation.
       categoryByWeight = []
       runningAvgTotal = 0
       averages.forEach(function(category){
@@ -971,6 +1001,8 @@ function drawGraphic() {
 
   } //end calculate function
 
+  // Redraw the stacked contribution chart from the latest category results.
+  // Clicking a segment updates the selected category's explanatory text.
   function drawProportionChart(data){
     var graphic = d3.select('#proportionchart');
     graphic.selectAll("*").remove();
@@ -1157,6 +1189,7 @@ function drawGraphic() {
 
   }
 
+  // Redraw either the five-category summary or the expanded spending-change bars.
   function drawBarChart(data, baroption) {
     // console.log(data)
     var graphic = d3.select('#barchart');
@@ -1462,6 +1495,7 @@ function drawGraphic() {
 
   } // ends drawBarChart
 
+  // Redraw the five-year personal-rate and CPIH lines on a shared date/percent scale.
   function drawLineChart(overall_inflation, cpih) {
     var graphic = d3.select('#graphic');
     graphic.selectAll("*").remove();
@@ -1501,7 +1535,7 @@ function drawGraphic() {
     var line = d3.line()
       .defined(function(d) {
         return d.pir != null;
-      }) // Right you scallywags, I'm going to tell you what this line does. This means that the line will not be drawn between any points a data point is NaN, or whatever function you want
+      }) // Skip missing values rather than joining gaps in the series.
       .curve(d3.curveLinear)
       .x(function(d) {
         return x(d.date);
@@ -1513,7 +1547,7 @@ function drawGraphic() {
     var line2 = d3.line()
       .defined(function(d) {
         return d.value != null;
-      }) // Right you scallywags, I'm going to tell you what this line does. This means that the line will not be drawn between any points a data point is NaN, or whatever function you want
+      }) // Skip missing CPIH observations rather than joining gaps.
       .curve(d3.curveLinear)
       .x(function(d) {
         return x(d.date);
@@ -1629,6 +1663,8 @@ function drawGraphic() {
 
   }
 
+  // Load the category rates and headline CPIH independently. Both must finish before
+  // calculations can compare a personal rate with the national headline rate.
   function loadData() {
 
     q = d3.queue()
@@ -1640,6 +1676,8 @@ function drawGraphic() {
         return
       }
       inflation = results[0]
+      // Keep the latest 60 observations newest-first, with Date values for the charts.
+      // Leave the downloaded JSON intact for inspection in the calculation log.
       var parseInflationDate = d3.timeParse("%Y-%m-%d")
       sourceCategories = {}
       inflation.categories.forEach(function(category) {
@@ -1649,6 +1687,7 @@ function drawGraphic() {
       })
       var updated = new Date(inflation.metadata.generatedAt)
       d3.select("#inflation-updated").text("Inflation data last updated: " + d3.utcFormat("%d %b %Y")(updated))
+      // CPIH comes from the ONS L55O annual-rate series, not the category JSON.
       var parseCpihDate = d3.timeParse(dvc.cpih_time_format)
       cpih_selected = results[1].months.slice(-dvc.time_series_totalmnths).reverse().map(function(month) {
         return Object.assign({}, month, {
@@ -1659,6 +1698,7 @@ function drawGraphic() {
     });
   } //end load data
 
+  // Break long SVG axis labels into tspans within the available label width.
   function wrap(text, width) {
     text.each(function() {
       var text = d3.select(this),
@@ -1686,6 +1726,7 @@ function drawGraphic() {
     });
   } //ends wrap
 
+  // Bring the selected chart segment above its siblings so its outline is visible.
   d3.selection.prototype.moveToFront = function() {
     return this.each(function(){
       this.parentNode.appendChild(this);
@@ -1698,6 +1739,7 @@ function drawGraphic() {
 
 
 
+// Wait for local spending-by-decile data before pym first calls drawGraphic.
 if (Modernizr.svg) {
 
   d3.csv("deciles.csv", function(error, csv) {
