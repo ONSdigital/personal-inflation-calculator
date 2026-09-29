@@ -10,6 +10,16 @@ prevSpend = 0;
 
 function drawGraphic() {
 
+  var categoryIds = {
+    foodhotdrinks: "1.1", spiritswinebeer: "1.2", tobacco: "1.3", personalcare: "1.4", nongrocery: "1.5",
+    ooh: "2.1", maintenance: "2.1", rent: "2.2", counciltax: "2.3", electricitygasfuels: "2.4", water: "2.5",
+    mobilephone: "3.1", internet: "3.2", vehicles: "4.1", petroldiesel: "4.2", othermotoring: "4.3",
+    trainfares: "4.4", busfares: "4.5", electrical: "5.1", tv: "5.2", games: "5.3", entertainment: "5.4",
+    pets: "5.5", gardening: "5.6", eatingout: "5.7", holidays: "5.8", otherleisure: "5.9",
+    health: "A", education: "B", residentialcare: "C", childcare: "C", clothes: "D", furniture: "E",
+    insurance: "F", other: "G"
+  }
+  var sourceCategories = {}
   loadData();
   getSize();
 
@@ -699,20 +709,6 @@ function drawGraphic() {
   }
 
   function calculate(data, cpih, decile, option) {
-    var categoryIds = {
-      foodhotdrinks: "1.1", spiritswinebeer: "1.2", tobacco: "1.3", personalcare: "1.4", nongrocery: "1.5",
-      ooh: "2.1", maintenance: "2.1", rent: "2.2", counciltax: "2.3", electricitygasfuels: "2.4", water: "2.5",
-      mobilephone: "3.1", internet: "3.2", vehicles: "4.1", petroldiesel: "4.2", othermotoring: "4.3",
-      trainfares: "4.4", busfares: "4.5", electrical: "5.1", tv: "5.2", games: "5.3", entertainment: "5.4",
-      pets: "5.5", gardening: "5.6", eatingout: "5.7", holidays: "5.8", otherleisure: "5.9",
-      health: "A", education: "B", residentialcare: "C", childcare: "C", clothes: "D", furniture: "E",
-      insurance: "F", other: "G"
-    }
-    var sourceCategories = {}
-    data.categories.forEach(function(category) {
-      sourceCategories[category.id] = category.data.slice(-dvc.time_series_totalmnths).reverse()
-    })
-    var parseInflationDate = d3.timeParse("%Y-%m-%d")
     var total = 0
     var total_change = 0
     pir = 0
@@ -744,7 +740,7 @@ function drawGraphic() {
         var previous_spend = (input / (1 + (inflation_rate / 100)))
         var change = input - previous_spend
         category_data[category][i] = {
-          date: parseInflationDate(months[i].date),
+          date: months[i].date,
           input: input,
           inflation_rate: inflation_rate,
           change: change,
@@ -1633,7 +1629,7 @@ function drawGraphic() {
   function loadData() {
 
     q = d3.queue()
-    q.defer(d3.json, "https://raw.githubusercontent.com/ONSdigital/personal-inflation-calculator-data/main/data/data.json")
+    q.defer(d3.json, "https://raw.githubusercontent.com/ONSdigital/personal-inflation-calculator-data/main/data/data.json?cache=" + Date.now())
     q.defer(d3.json, "https://www.ons.gov.uk/economy/inflationandpriceindices/timeseries/l55o/mm23/data")
     q.awaitAll(function(error, results) {
       if (error) {
@@ -1641,6 +1637,13 @@ function drawGraphic() {
         return
       }
       inflation = results[0]
+      var parseInflationDate = d3.timeParse("%Y-%m-%d")
+      sourceCategories = {}
+      inflation.categories.forEach(function(category) {
+        sourceCategories[category.id] = category.data.slice(-dvc.time_series_totalmnths).reverse().map(function(month) {
+          return {date: parseInflationDate(month.date), annualRate: month.annualRate}
+        })
+      })
       var updated = new Date(inflation.metadata.generatedAt)
       d3.select("#inflation-updated").text("Inflation data last updated: " + d3.utcFormat("%d %b %Y")(updated))
       var parseCpihDate = d3.timeParse(dvc.cpih_time_format)
