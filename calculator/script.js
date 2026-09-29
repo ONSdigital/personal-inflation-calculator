@@ -10,7 +10,6 @@ prevSpend = 0;
 
 function drawGraphic() {
 
-  calls = 0
   loadData();
   getSize();
 
@@ -287,27 +286,6 @@ function drawGraphic() {
       calculateSpending()
     })
 
-
-    // // skip to the end
-    // d3.select("#skipToEndButton")
-    //   .on('click', function() {
-    //   if (d3.select('input[name="income"]:checked').node().value == "net-income") {
-    //     var decile = getDecile(d3.select("#netincome-input").property("value") * (d3.select("#netincome-time-period").property("value") / 12));
-    //     d3.select("#runninginf-basedon").text("households with a similar income")
-    //   } else {
-    //     decile = 0
-    //     d3.select("#runninginf-basedon").text("the UK average")
-    //   }
-    //   hide(d3.select("#inputs-quick"))
-    //   option = "superfast"
-    //   prefill(decile);
-    //   addAverages(decile);
-    //   showResults();
-    //   calculateSpending();
-    //   calculate(final_data, cpih_selected, decile, option);
-    //   pymChild.sendHeight();
-    //   document.getElementById("graphic-container").scrollIntoView(true)
-    // });
 
     // back button front page
     d3.select("button#backButton-frontpage").on('click', function() {
@@ -720,25 +698,6 @@ function drawGraphic() {
     return d3.select("input#" + item).property('value') * d3.select("select#" + item + "-time-period").property('value') / 12
   }
 
-  function prefill(decile) {
-    housingsit = document.querySelector('input[name="housing"]:checked').value;
-    inflation_data.forEach(function(category) {
-      category_spend = deciles_data.filter(function(d) {
-        return d.cat_id == category.cat_id
-      })
-      category_spend = Object.values(category_spend[0])
-      if (category.cat_id == "rent" & (housingsit == "mortgage" | housingsit == "nohcost")){
-        d3.select("#" + category.cat_id).property("value", 0)
-      }
-      else if (category.cat_id == "ooh" & (housingsit == "rent" | housingsit == "nohcost")){
-        d3.select("#" + category.cat_id).property("value", 0)
-      }
-      else{
-        d3.select("#" + category.cat_id).property("value", category_spend[decile + 1])
-      }
-    })
-  }
-
   function calculate(data, cpih, decile, option) {
     var categoryIds = {
       foodhotdrinks: "1.1", spiritswinebeer: "1.2", tobacco: "1.3", personalcare: "1.4", nongrocery: "1.5",
@@ -758,7 +717,6 @@ function drawGraphic() {
     var total_change = 0
     pir = 0
     category_data = {}
-    compare_avg_user = {}
     //loop through each category
     Object.keys(categoryIds).forEach(function(category) {
       var months = sourceCategories[categoryIds[category]]
@@ -794,13 +752,6 @@ function drawGraphic() {
           weight: 0,
           weighted_index: 0
         }
-        if (i == 0){
-          compare_avg_user[category] = {
-            userinput: input,
-            userchange: change,
-            inflation_rate: inflation_rate
-          }
-        }
       }
     })
 
@@ -811,23 +762,8 @@ function drawGraphic() {
       d.inflation_rate = sourceCategories[categoryIds[category]][0].annualRate
       d.change = d.value - (d.value / (1 + (d.inflation_rate / 100)))
       d.previous_spend = d.value - d.change
-      // d.weighted_index = d.proportion * (d.inflation_rate / 100)
-      compare_avg_user[category].category = d.category
-      compare_avg_user[category].avginput = d.value
-      compare_avg_user[category].avgchange = d.change
-      compare_avg_user[category].inputdiff = compare_avg_user[category].userinput - compare_avg_user[category].avginput
-      compare_avg_user[category].changediff = compare_avg_user[category].userchange - compare_avg_user[category].avgchange
     })
 
-    compare_ordered = []
-    for (var category in compare_avg_user){
-      compare_ordered.push(compare_avg_user[category])
-    }
-
-
-    compare_ordered.sort(function(a, b) {
-      return b.changediff - a.changediff;
-    })
     overall_inflation = []
     for (i = 0; i < sourceCategories[categoryIds.foodhotdrinks].length; i++) {
       var total = 0
@@ -904,24 +840,6 @@ function drawGraphic() {
         return b.weight - a.weight;
       })
 
-      // d3.select("#biggestCat").text("The largest difference in your spending compared to similar households is on " + compare_ordered[0].category.toLowerCase()+".")
-      // d3.select("#propBiggestCat").text(d3.format(".2f")(compare_ordered[0].userinput))
-      // selectedAvg = averages.filter(function(d){ return d.key == categoryByWeight[0].cat_id})
-      // d3.select("#avgPropBiggestCat").text(d3.format(".2f")(compare_ordered[0].avginput))
-      // d3.select("#biggestCatInflation").text(d3.format(".1f")(categoryByWeight[0].inflation_rate) + "%")
-      // if (decile == 0){
-      //   d3.select("#avgorsimHousehold").text("an average household")
-      // }
-      // else{
-      //   d3.select("#avgorsimHousehold").text("similar households")
-      // }
-      //
-      // d3.select("#biggestCatDiffInflation").text(d3.format(".1f")(categoryByWeight[0].inflation_rate - cpih[0].value))
-      // d3.select("#biggestCatOverUnder").text(function() {
-      //   return categoryByWeight[0].inflation_rate - cpih[0].value > 0 ? "above" : "below"
-      // })
-      // d3.select("#biggestCatOverallInflation").text(d3.format(".1f")(cpih[0].value) + "%")
-
       categoryByIncrease = []
 
       Object.keys(category_data).forEach(function(category) {
@@ -948,15 +866,6 @@ function drawGraphic() {
       }
 
       categoryByIncrease_slice = categoryByIncrease.slice(0, 5)
-
-      averages_slice = []
-      categoryByIncrease_slice.forEach(function(d,i){
-        averages.forEach(function(avgdata){
-          if (d.cat_id == avgdata.key){
-            averages_slice[i] = avgdata
-          }
-        })
-      })
 
       categoryByIncrease_slice.reverse()
       categoryByIncrease.reverse()
@@ -1042,19 +951,19 @@ function drawGraphic() {
       }
 
       baroption = "condensed"
-      drawProportionChart(proportiondata,baroption)
-      drawBarChart(categoryByIncrease_slice,averages_slice,baroption)
+      drawProportionChart(proportiondata)
+      drawBarChart(categoryByIncrease_slice,baroption)
 
       d3.select("#seemore-button").on("click",function(){
         if (baroption == "condensed"){
           baroption = "expanded"
-          drawBarChart(categoryByIncrease,averages,baroption)
+          drawBarChart(categoryByIncrease,baroption)
           d3.select("#seemore").text("◄ See less ")
           pymChild.sendHeight();
         }
         else if (baroption == "expanded"){
           baroption = "condensed"
-          drawBarChart(categoryByIncrease_slice,averages_slice,baroption)
+          drawBarChart(categoryByIncrease_slice,baroption)
           d3.select("#seemore").text("► See more ")
           pymChild.sendHeight();
         }
@@ -1063,7 +972,7 @@ function drawGraphic() {
 
   } //end calculate function
 
-  function drawProportionChart(data, baroption){
+  function drawProportionChart(data){
     var graphic = d3.select('#proportionchart');
     graphic.selectAll("*").remove();
     // if (baroption == "condensed"){
@@ -1182,8 +1091,6 @@ function drawGraphic() {
         d3.selectAll(".propDataRect")
           .on("click",handleMouseClick)
           .on("keypress",handleMouseClick)
-            // .on("mouseover",handleMouseOverProp)
-            // .on("mouseout",handleMouseOutProp)
 
         function handleMouseClick(d,i){
           var selectedCat = d.propid
@@ -1198,63 +1105,6 @@ function drawGraphic() {
           d3.select("#infProp").text(d3.format(".1f")((data[0].data[i].weighted_index/overall_inflation[0].pir)*100)+"%")
         }
 
-        function handleMouseOverProp(d,i){
-          // if (i < dvc.prop_colour_palette.length | (i >= data[0].data.length && i < data[0].data.length+dvc.prop_colour_palette.length)){
-            var selectedCat = d.propid
-            if (typeof selectedCat == 'undefined'){
-              var selectedCat = d.key
-              i = i - data[0].data.length
-            }
-            d3.selectAll(".propDataRect").style("stroke-width",0)
-            d3.selectAll("#propDataRect-"+selectedCat).style("stroke-width",3).style("stroke","#FBC900").moveToFront()
-            d3.select("#selectedProp").text(data[0].data[i].propname.charAt(0).toLowerCase()+data[0].data[i].propname.slice(1)).style("color",dvc.prop_colour_palette[i])
-            d3.select("#selectedPropVal").text(d3.format(".1f")(data[0].data[i].weighted_index)+"%")
-            d3.select("#infProp").text(d3.format(".1f")((data[0].data[i].weighted_index/overall_inflation[0].pir)*100)+"%")
-            // d3.select("#selectedProp_avg").text(data[1].data[i].category.charAt(0).toLowerCase()+data[1].data[i].category.slice(1)).style("fill",dvc.prop_colour_palette[i])
-            // d3.select("#selectedPropVal_avg").text(d3.format(".1f")(data[1].data[i].weighted_index)+"%")
-            // d3.select("#infProp_avg").text(d3.format(".1f")((data[1].data[i].weighted_index/overall_inflation[0].pir)*100)+"%")
-          // }
-        }
-
-        function handleMouseOutProp(d,i){
-          // if (i < dvc.prop_colour_palette.length | (i >= data[0].data.length && i < data[0].data.length+dvc.prop_colour_palette.length)){
-            var selectedCat = d.propid
-            if (typeof selectedCat == 'undefined'){
-              var selectedCat = d.key
-            }
-            d3.selectAll("#propDataRect-"+selectedCat).style("stroke-width",0)
-            d3.select("#selectedProp").text((firstcat.category.charAt(0).toLowerCase()+firstcat.category.slice(1))).style("color",dvc.prop_colour_palette[0])
-            d3.select("#selectedPropVal").text(d3.format(".1f")(firstcat.weighted_index)+"%")
-            d3.select("#infProp").text(d3.format(".1f")((firstcat.weighted_index/overall_inflation[0].pir)*100)+"%")
-            // d3.select("#selectedProp_avg").text((firstcat_avg.category.charAt(0).toLowerCase()+firstcat.category.slice(1))).style("fill",dvc.prop_colour_palette[0])
-            // d3.select("#selectedPropVal_avg").text(d3.format(".1f")(firstcat_avg.weighted_index)+"%")
-            // d3.select("#infProp_avg").text(d3.format(".1f")((firstcat_avg.weighted_index/overall_inflation[0].pir)*100)+"%")
-
-          // }
-        }
-        // svg.append('g')
-        //   .selectAll('text').data(d.data)
-        //   .enter()
-        //   .append('text')
-        //   .attr('class','propgraph-label')
-        //   .text(function(propd){
-        //     if (propd.weighted_index > max_inf*0.095){
-        //       if (d.key == "Your inflation"){
-        //         return propd.category + " ("+d3.format(".0f")((propd.weighted_index/overall_inflation[0].pir)*100)+"%)"
-        //       }
-        //       else{
-        //         return propd.category + " ("+d3.format(".0f")((propd.weighted_index/similarhh_ir)*100)+"%)"
-        //       }
-        //     }
-        //     else{
-        //       return ""
-        //     }
-        //   })
-        //   .attr('transform',function(propd){
-        //     return 'translate('+(x(propd.previous_total)+5)+','+(y(d.key)+y.bandwidth()-10)+')'
-        //   })
-        //   .call(wrap2,max_inf*0.095)
-        //
         svg.append('text')
           .attr('class','propgraph-cat-label')
           .text(d.key)
@@ -1268,8 +1118,6 @@ function drawGraphic() {
       //   .attr('class','propgraph-label row-major')
       //   .attr('transform','translate('+(chart_width/2)+','+(y("Your inflation")+y.bandwidth()+70)+')')
         // .text("Spend on "+(firstcat.category.charAt(0).toLowerCase()+firstcat.category.slice(1))+" caused your monthly spend to increase by "+d3.format(".1f")(firstcat.weighted_index)+"%")
-
-      var chart_width = parseInt(someContainer.style("width"))
 
       d3.select('#selectedProp').text((firstcat.category.charAt(0).toLowerCase()+firstcat.category.slice(1))).style("color",dvc.prop_colour_palette[0]).style("font-weight",700)
       d3.select('#selectedPropVal').text(d3.format(".1f")(firstcat.weighted_index)+"%").style("font-weight",700)
@@ -1310,8 +1158,7 @@ function drawGraphic() {
 
   }
 
-  function drawBarChart(data, averagesdata, baroption) {
-    var legend = d3.select("#barlegend")
+  function drawBarChart(data, baroption) {
     // console.log(data)
     var graphic = d3.select('#barchart');
     graphic.selectAll("*").remove();
@@ -1614,38 +1461,6 @@ function drawGraphic() {
         })
         // .attr("font-weight",700)
 
-      // svg.append('g')
-      //   .selectAll('rect').data(averagesdata)
-      //   .enter()
-      //   .append('rect')
-      //   .attr('x', x(0))
-      //   .attr('y', function(d) {
-      //     return y(d.category)+y.bandwidth()/2 + 2.5
-      //   })
-      //   .attr('height', y.bandwidth()/2)
-      //   .attr('width', function(d) {
-      //     return x(d.previous_spend)
-      //   })
-      //   .attr('fill', "#F66068")
-      //
-      // svg.append('g')
-      //   .selectAll('rect').data(averagesdata)
-      //   .enter()
-      //   .append('rect')
-      //   .attr('x', function(d) {
-      //     return x(d.previous_spend)
-      //   })
-      //   .attr('y', function(d) {
-      //     return y(d.category)+y.bandwidth()/2 + 2.5
-      //   })
-      //   .attr('height', y.bandwidth()/2)
-      //   .attr('width', function(d) {
-      //     return x(d.change)
-      //   })
-      //   .attr('fill', "#871A5B")
-
-
-
   } // ends drawBarChart
 
   function drawLineChart(overall_inflation, cpih) {
@@ -1815,152 +1630,6 @@ function drawGraphic() {
 
   }
 
-  function addUpdateTime(data){
-    var update = inflation[0].versions[inflation[0].versions.length-1].updateDate
-    var update = update.slice(0, 10)
-    var update = d3.timeParse("%Y-%m-%d")(update)
-    var update = d3.timeFormat("%d %b %Y")(update)
-    d3.select("#inflation-updated").text("Inflation data last updated: "+update)
-  }
-
-  function structureData(inflation, weights, cpih, final_data) {
-    parseTime = d3.timeParse(dvc.time_format)
-    formatTime = d3.timeFormat("%B %Y");
-
-    weights_nested = d3.nest()
-      .key(function(d){
-        return d.description
-      })
-      .entries(weights[0])
-
-    for (var sc = 0; sc < inflation_data.length; sc++) {
-      subcategory = inflation_data[sc]
-      inflation_subcategory = inflation[sc]
-      // weights_subcategory = d3.nest()
-      //   .key(function(d) {
-      //     return d.year
-      //   })
-      //   .entries(weights[sc].years)
-      weights_subcategory = weights_nested[sc].values
-
-      //loop through number of specified months and extract necessary data from inflation and weights dataset
-      for (var month = 1; month < dvc.time_series_totalmnths + 1; month++) {
-        //get year from inflation data and filter weights data to specified year
-        year = inflation_subcategory[dvc.time_period][inflation_subcategory[dvc.time_period].length - month].year
-        year = "" + year
-        selected_weight_data = weights_subcategory.filter(function(d) {
-          return d.year == year
-        })
-
-        //get months inflation data
-        selected_inf_data = inflation_subcategory[dvc.time_period][inflation_subcategory[dvc.time_period].length - month]
-
-        //combine date, inflation data and weights data for each month into one object
-        subcategory.inf_values.push({
-          date: selected_inf_data.month + " " + selected_inf_data.year,
-          index: +selected_inf_data.value,
-          weight: +selected_weight_data[0].value
-        })
-      }
-    }
-
-
-    //nest all data by category
-    var nested_data = d3.nest()
-      .key(function(d) {
-        return d.category
-      })
-      .entries(inflation_data)
-
-    //combine all subcategories and dates into one big long format dataset
-    nested_data.forEach(function(category) {
-      var subcategory_inflation = []
-      for (var month = 0; month < dvc.time_series_totalmnths; month++) {
-        category.values.forEach(function(subcategory) {
-          subcategory_inflation.push(subcategory.inf_values[month])
-        })
-      }
-      //create nested data of long dataset by date
-      subcategory_nested = d3.nest()
-        .key(function(d) {
-          return d.date
-        })
-        .entries(subcategory_inflation)
-
-      //within each category, calculate the sum of subcategory weights for each month
-      subcategory_nested.forEach(function(date) {
-        totalweight = 0
-        date.values.forEach(function(subcategory) {
-          totalweight = totalweight + subcategory.weight
-        })
-        //use this total category weight to calculate the subcategory weight within the overall category
-        index = 0
-        date.values.forEach(function(subcategory) {
-          subcategory.adjweight = subcategory.weight / totalweight
-          subcategory.adjindex = subcategory.index * subcategory.adjweight
-          //use adjusted subcategory weights to calculated an index for the whole category
-          index = index + subcategory.adjindex
-        })
-        //add this category index to the dataset
-        date.index = index
-      })
-      //add this to a final dataset for use in the calculators
-      array_data.push({
-        name: category.key,
-        cat_id: category.values[0].cat_id,
-        values: subcategory_nested
-      })
-    })
-
-    //convert dates into time format
-    array_data.forEach(function(category) {
-      category.values.forEach(function(d) {
-        d.key = parseTime(d.key)
-      })
-    })
-
-    array_data.forEach(function(category) {
-      var itemkey = category.cat_id
-      final_data[itemkey] = category.values
-    })
-
-    // structure CPIH headline data
-    cpih_selected = []
-    for (var month = 1; month < dvc.time_series_totalmnths + 1; month++) {
-      cpih_selected.push(cpih[0].months[cpih[0].months.length - month])
-    }
-    var parseTime2 = d3.timeParse(dvc.cpih_time_format)
-    cpih_selected.forEach(function(d, i) {
-      d.date = parseTime2(d.date)
-      d.value = +d.value
-      // cpih_final[i] = {series: "cpih", date: d.date, total: 0, total_change: 0, pir: +d.value}
-    })
-
-  } //end structureData
-
-  //pass all data into ready function
-  function ready(error, everything) {
-    //seperate out data into inflation and weights data
-    inflation = []
-    weights = []
-    cpih_new = []
-
-    everything.forEach((item, i) => {
-      if (i == everything.length - 1) {
-        cpih_new.push(item)
-      } else if (i == everything.length - 2){
-        weights.push(item)
-      } else {
-        inflation.push(item)
-      }
-    });
-    //pass these into structureData function to format for calculators
-    array_data = []
-    final_data = {}
-    addUpdateTime(inflation)
-    structureData(inflation, weights, cpih_new, final_data)
-  } //end ready
-
   function loadData() {
 
     q = d3.queue()
@@ -1972,6 +1641,8 @@ function drawGraphic() {
         return
       }
       inflation = results[0]
+      var updated = new Date(inflation.metadata.generatedAt)
+      d3.select("#inflation-updated").text("Inflation data last updated: " + d3.utcFormat("%d %b %Y")(updated))
       var parseCpihDate = d3.timeParse(dvc.cpih_time_format)
       cpih_selected = results[1].months.slice(-dvc.time_series_totalmnths).reverse().map(function(month) {
         return Object.assign({}, month, {
@@ -1988,11 +1659,8 @@ function drawGraphic() {
         words = text.text().split(/\s+/).reverse(),
         word,
         line = [],
-        lineNumber = 0,
         lineHeight = 1.1, // ems
-        // y = text.attr("y"),
         x = text.attr("x"),
-        dy = parseFloat(text.attr("dy")),
         tspan = text.text(null).append("tspan").attr('x', x);
       while (word = words.pop()) {
         line.push(word);
@@ -2010,42 +1678,6 @@ function drawGraphic() {
     text.attr("y", function() {
       return (-6 * (breaks - 1))
     });
-  } //ends wrap
-
-  function wrap2(text, width) {
-    text.each(function() {
-      var text = d3.select(this),
-        words = text.text().split(/\s+/).reverse(),
-        word,
-        line = [],
-        lineNumber = 0,
-        lineHeight = 1.1, // ems
-        // y = text.attr("y"),
-        x = text.attr("x"),
-        dy = parseFloat(text.attr("dy")),
-        tspan = text.text(null).append("tspan").attr('x', x);
-        breaks = 0
-      while (word = words.pop()) {
-        line.push(word);
-        tspan.text(line.join(" "));
-        if (tspan.node().getComputedTextLength() > width) {
-          breaks = breaks + 1
-          line.pop();
-          tspan.text(line.join(" "));
-          line = [word];
-          tspan = text.append("tspan").attr('x', 0).attr("dy", lineHeight + "em").text(word);
-        }
-      }
-      text.attr('y',function(){
-        return (-14 * breaks)
-      })
-    });
-
-    // var breaks = text.selectAll("tspan").size();
-    // console.log(breaks)
-    // text.attr("y", function() {
-    //   return (-6 * (breaks - 1))
-    // });
   } //ends wrap
 
   d3.selection.prototype.moveToFront = function() {
