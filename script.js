@@ -65,7 +65,7 @@ function drawGraphic() {
 
     // d3.select(".button-select").style('display','block')
 
-    option = d3.select("#option-button").property("value");
+    option = "quick";
 
     d3.selectAll('.button-select').on('click',function(){
       option = d3.select(this).property("value");
@@ -204,82 +204,6 @@ function drawGraphic() {
       // if we're at the end show the results
 
     });
-
-    d3.selectAll("#option-button").on('click',function(){
-      // d3.select(this).text(option.charAt(0).toUpperCase() + option.slice(1))
-      // option = d3.select(this).property("value")
-      if (option == "quick"){
-        // d3.selectAll("#option-button-text").text("Too many categories?")
-        // // hide(d3.select("#option-button-text2"))
-        // d3.selectAll("#option-button").text("use our quick calculator")
-        // d3.selectAll("#option-button-subtext2").text(" ")
-        d3.select(this).property("value","detailed")
-        option = d3.select(this).property("value")
-        counter = 0
-        // disableSkipToEnd();
-        if (d3.select('input[name="income"]:checked').node().value == "net-income") {
-          var decile = getDecile(d3.select("#netincome-input").property("value") * (d3.select("#netincome-time-period").property("value") / 12));
-          // show(d3.select("#skipToEndBox"))
-          d3.select("#runninginf-basedon").text("households with a similar income")
-        } else {
-          decile = 0
-          // hide(d3.select("#skipToEndBox"))
-          d3.select("#runninginf-basedon").text("the UK average")
-        }
-        quickcategories.forEach(function(category){
-          var val = d3.select("#"+category+"-quick").property("value")
-          d3.select("#"+category).property("value",val)
-        })
-        addAverages(decile);
-        updateRunningTotal(decile);
-        // hide(d3.select('#inputs' + counter))
-        hide(d3.select('#inputs-quick'))
-        counter++
-        calculateSpending()
-        show(d3.select("#monthlyexpenditure"))
-        hide(d3.select("#inflationrate-summary"))
-        show(d3.select('#inputs' + counter))
-        pymChild.sendHeight();
-        document.getElementById("graphic-container").scrollIntoView(true)
-      }
-      else{
-        // d3.selectAll("#option-button-text").text("Want more accurate results?")
-        // show(d3.select("#option-button-text2"))
-        // d3.selectAll("#option-button").text("use our detailed calculator")
-        // d3.selectAll("#option-button-subtext").text("to input your spending for more categories")
-        hide(d3.select("#inputs"+counter))
-        d3.select(this).property("value","quick")
-        option = d3.select(this).property("value")
-        counter = 0
-        // disableSkipToEnd();
-        if (d3.select('input[name="income"]:checked').node().value == "net-income") {
-          var decile = getDecile(d3.select("#netincome-input").property("value") * (d3.select("#netincome-time-period").property("value") / 12));
-          // show(d3.select("#skipToEndBox"))
-          d3.select("#runninginf-basedon").text("households with a similar income")
-        } else {
-          decile = 0
-          // hide(d3.select("#skipToEndBox"))
-          d3.select("#runninginf-basedon").text("the UK average")
-        }
-        quickcategories.forEach(function(category){
-          var val = d3.select("#"+category).property("value")
-          d3.select("#"+category+"-quick").property("value",val)
-        })
-        addAverages(decile);
-        updateRunningTotal(decile);
-        // show(d3.select("#monthlyexpenditure"))
-        hide(d3.select("#monthlyexpenditure"))
-        show(d3.select("#inflationrate-summary"))
-        show(d3.select("#inputs-quick"))
-        for (var i = 0; i < 6; i++){
-          hide(d3.select("#inputs" + i))
-        }
-        // show(d3.select("#option-button"))
-        counter++
-        pymChild.sendHeight();
-        document.getElementById("graphic-container").scrollIntoView(true)
-      }
-    })
 
     d3.select("#results-detailed").on('click',function(){
       // hide(d3.select("#option-button-text2"))

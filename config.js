@@ -37,7 +37,7 @@ dvc = {
       "value": 6049.333333
     },
   ],
-  "quickcategories": ["foodhotdrinks","rent","ooh","electricitygasfuels","petroldiesel","eatingout","childcare","holidays","clothes","trainfares","busfares"],
+  "quickcategories": ["foodhotdrinks","rent","ooh","electricitygasfuels","petroldiesel","eatingout","childcare","holidays","clothes"],
   "time_period": "months",
   "time_format": "%B %Y",
   "cpih_time_format": "%Y %b",
